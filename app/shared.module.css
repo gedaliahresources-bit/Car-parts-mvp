@@ -1,0 +1,257 @@
+.main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+.header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.sub {
+  margin-top: 0.35rem;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  text-decoration: underline;
+  color: #555;
+}
+
+.flash {
+  margin-top: 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 6px;
+  background: #eef7ee;
+  border: 1px solid #b7d7b7;
+  font-size: 0.9rem;
+}
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  background: #fff;
+}
+
+.cardTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  text-transform: capitalize;
+}
+
+.badge {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  background: #eee;
+  color: #444;
+}
+
+.badgeOff {
+  background: #f5e0e0;
+  color: #800;
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 1rem;
+  font-size: 0.9rem;
+}
+
+.meta dt {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #777;
+}
+
+.meta dd {
+  margin: 0;
+}
+
+.fitment {
+  grid-column: 1 / -1;
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.rowActions a,
+.rowActions button {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+
+.dangerBtn {
+  border-color: #c88 !important;
+  color: #800 !important;
+}
+
+.sellerPick {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.sellerPick a {
+  display: block;
+  padding: 0.85rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.sellerPick a:hover {
+  background: #f7f7f7;
+}
+
+.contact {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.contact h2 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.blocked {
+  color: #800;
+  font-size: 0.9rem;
+}
+
+.messageBox {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.messageBox textarea {
+  width: 100%;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+.messageBox button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: #111;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.messages {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.msg {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.msgHead {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+
+.empty {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px dashed #bbb;
+  border-radius: 8px;
+  color: #555;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sub,
+  .back,
+  .empty {
+    color: #aaa;
+  }
+  .card,
+  .msg,
+  .sellerPick a {
+    background: #141414;
+    border-color: #333;
+  }
+  .sellerPick a:hover {
+    background: #1a1a1a;
+  }
+  .contact,
+  .messageBox {
+    background: #141414;
+    border-color: #333;
+  }
+  .flash {
+    background: #143014;
+    border-color: #2a5a2a;
+  }
+  .rowActions a,
+  .rowActions button {
+    background: #1a1a1a;
+    border-color: #444;
+  }
+  .messageBox textarea {
+    background: #1a1a1a;
+    border-color: #444;
+    color: #eee;
+  }
+  .messageBox button {
+    background: #eee;
+    color: #111;
+  }
+  .badge {
+    background: #333;
+    color: #ccc;
+  }
+}
