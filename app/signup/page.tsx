@@ -25,6 +25,8 @@ export default async function SignupPage({ searchParams }: Props) {
   }
 
   const error = one(searchParams.error);
+  const roleDefault =
+    one(searchParams.role) === "seller" ? "seller" : "buyer";
 
   return (
     <>
@@ -37,6 +39,16 @@ export default async function SignupPage({ searchParams }: Props) {
             yards as buyers.
           </p>
         </header>
+
+        <section className={styles.card} style={{ marginTop: "1rem" }}>
+          <p style={{ fontSize: "0.95rem", margin: 0 }}>
+            <strong>Atlanta yards:</strong> list real parts on Openlot. Choose
+            role <em>Seller</em>, then add inventory from your dashboard.{" "}
+            <Link href="/atlanta">Atlanta pilot</Link>
+            {" · "}
+            <Link href="/seller">Seller inventory</Link>
+          </p>
+        </section>
 
         {error && (
           <p className={styles.blocked} role="alert" style={{ marginTop: "1rem" }}>
@@ -76,7 +88,7 @@ export default async function SignupPage({ searchParams }: Props) {
           </label>
           <label>
             Role *
-            <select name="role" defaultValue="buyer" required>
+            <select name="role" defaultValue={roleDefault} required>
               <option value="buyer">Buyer</option>
               <option value="seller">Seller (can also buy)</option>
             </select>

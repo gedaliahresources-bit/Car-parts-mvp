@@ -54,6 +54,9 @@ export default async function ProDashboardPage({
           <p className={styles.sub}>
             {session.displayName} · {pros.length} profile
             {pros.length === 1 ? "" : "s"}
+            {" · "}
+            Atlanta pros: keep license status honest —{" "}
+            <Link href="/atlanta">pilot info</Link>
           </p>
         </header>
 

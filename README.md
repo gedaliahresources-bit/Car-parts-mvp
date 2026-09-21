@@ -43,6 +43,33 @@ Optional: set `SESSION_SECRET` for production cookie signing (a dev default is u
 | `/services/pro/[userId]` | Own pro profiles only |
 | `/services/pro/[userId]/new` | Create pro profile |
 | `/services/pro/[userId]/[proId]/edit` | Edit own pro profile |
+| `/atlanta` | Public Atlanta pilot landing (parts + home services) |
+| `/admin/supply` | Password-gated one-row supply import (`ADMIN_SUPPLY_KEY`) |
+
+
+## Atlanta supply onboarding (real yards / pros)
+
+Recruitment contact lists stay **off-site** (spreadsheet / email). Do **not** auto-import them into production inventory.
+
+After a yard or pro says yes (verbal or email):
+
+1. **Self-serve (preferred):** send them `/atlanta` → Sign up as seller (`/signup?role=seller`) or Pro (`/services/pro`), then they add their own listings/profiles.
+2. **Admin assist:** open `/admin/supply`, unlock with `ADMIN_SUPPLY_KEY`, paste **one** CSV row to create a seller (+ optional listing stub) or a pro profile (`license_status=unverified`, notes `source: atlanta-recruitment`). Temp password is shown once.
+
+CSV shapes:
+
+```
+seller,email,display_name,phone[,part_name,location]
+pro,email,display_name,phone,business_name,trades,service_area
+```
+
+Set the key on Fly when ready (never commit it):
+
+```bash
+fly secrets set ADMIN_SUPPLY_KEY="$(openssl rand -hex 24)" --app openlot
+```
+
+Also set `SESSION_SECRET` as documented below. Recruitment CSVs are not deployed with the app.
 
 ## Demo accounts (after seed)
 
@@ -188,5 +215,5 @@ Or from a fresh clone: `fly launch` (accept/adjust the existing `fly.toml`; do n
 - **Volume:** `[[mounts]]` source `openlot_data` → `/data`. SQLite file lives at `/data/car-parts.db`.
 - **Seed:** container entrypoint runs `ensure-seed` softly (failure does not block boot), then `node server.js` (standalone).
 - **Free allowance:** Fly free/trial allowances change; expect limited shared-CPU VMs, sleep on idle (`auto_stop_machines`), and volume size quotas. A 1 GB volume and one `iad` machine is the intended small footprint. Check [Fly pricing](https://fly.io/docs/about/pricing/) for current free allowances.
-- **Secrets only via CLI/dashboard:** `SESSION_SECRET` — never put a real secret in `fly.toml` or the repo.
+- **Secrets only via CLI/dashboard:** `SESSION_SECRET`, and when using admin import `ADMIN_SUPPLY_KEY` — never put a real secret in `fly.toml` or the repo.
 - Prefer **Vercel + Turso** if you want serverless with no disk; use Fly when you want file SQLite on a volume.

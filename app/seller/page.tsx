@@ -27,8 +27,21 @@ export default async function SellerGatePage() {
             listings (or sign out and sign up as a seller).
           </p>
         </header>
+
+        <section className={styles.card} style={{ marginTop: "1rem" }}>
+          <p style={{ fontSize: "0.95rem", margin: 0 }}>
+            <strong>Atlanta yards:</strong> list real parts — not scraped
+            inventory. Sign up as a seller, then add what you actually have.{" "}
+            <Link href="/atlanta">Atlanta pilot</Link>
+            {" · "}
+            <Link href="/signup?role=seller&next=/seller">
+              Sign up as seller
+            </Link>
+          </p>
+        </section>
+
         <p style={{ marginTop: "1rem" }}>
-          <Link href="/signup">Sign up as seller</Link>
+          <Link href="/signup?role=seller&next=/seller">Sign up as seller</Link>
           {" · "}
           <Link href="/">Back to search</Link>
         </p>

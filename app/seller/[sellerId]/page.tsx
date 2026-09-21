@@ -53,6 +53,9 @@ export default async function SellerInventoryPage({
           <h1>{session.displayName}</h1>
           <p className={styles.sub}>
             {listings.length} listing{listings.length === 1 ? "" : "s"}
+            {" · "}
+            Atlanta yards: list real parts only —{" "}
+            <Link href="/atlanta">pilot info</Link>
           </p>
         </header>
 
