@@ -1,5 +1,5 @@
 /**
- * Reset DB and load demo sellers + listings.
+ * Reset DB and load demo sellers + listings + home-service pros.
  * All seeded accounts use password: demo1234
  * Run: npm run demo:seed
  */
@@ -858,6 +858,161 @@ const listings: SeedListing[] = [
   },
 ];
 
+
+type LicenseStatus = "verified" | "unverified" | "not_applicable";
+
+type SeedPro = {
+  business_name: string;
+  trades: string;
+  service_area: string;
+  years_experience: number;
+  specialties?: string;
+  notes?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  active?: boolean;
+  license_status: LicenseStatus;
+  license_number?: string;
+  license_source_name?: string;
+  license_source_url?: string;
+  license_checked_on?: string;
+};
+
+const servicePros: SeedPro[] = [
+  // H1 required: Atlanta Plumbing Co — unverified
+  {
+    business_name: "Atlanta Plumbing Co",
+    trades: "plumbing",
+    service_area: "Atlanta, GA",
+    years_experience: 12,
+    specialties: "Residential repairs, water heaters",
+    notes: "Family-owned; serves metro Atlanta.",
+    contact_email: "jobs@atlanta-plumbing.example",
+    contact_phone: "404-555-0201",
+    license_status: "unverified",
+  },
+  // Verified plumbing with named demo source
+  {
+    business_name: "Peach State Pipe Pros",
+    trades: "plumbing",
+    service_area: "Atlanta, GA 30308",
+    years_experience: 18,
+    specialties: "Drain cleaning, slab leaks",
+    contact_email: "hello@peachstatepipe.example",
+    license_status: "verified",
+    license_number: "PL-GA-44821",
+    license_source_name:
+      "Georgia Secretary of State Professional Licensing — example demo source",
+    license_source_url: "https://sos.ga.gov/example-demo-license-board",
+    license_checked_on: "2026-03-15",
+  },
+  {
+    business_name: "CoolAir Atlanta HVAC",
+    trades: "HVAC",
+    service_area: "Atlanta, GA",
+    years_experience: 9,
+    specialties: "AC install, heat pumps",
+    contact_phone: "404-555-0210",
+    license_status: "verified",
+    license_number: "HVAC-GA-99102",
+    license_source_name:
+      "Georgia Secretary of State Professional Licensing — example demo source",
+    license_source_url: "https://sos.ga.gov/example-demo-license-board",
+    license_checked_on: "2026-01-20",
+  },
+  {
+    business_name: "SparkRight Electric",
+    trades: "electrical",
+    service_area: "Decatur, GA",
+    years_experience: 7,
+    specialties: "Panel upgrades, EV chargers",
+    contact_email: "dispatch@sparkright.example",
+    license_status: "unverified",
+  },
+  {
+    business_name: "Metro General Contractors",
+    trades: "general contractor, remodeling",
+    service_area: "Marietta, GA",
+    years_experience: 22,
+    specialties: "Kitchen/bath remodels, additions",
+    contact_email: "bids@metro-gc.example",
+    license_status: "verified",
+    license_number: "GC-GA-21044",
+    license_source_name:
+      "Georgia Secretary of State Professional Licensing — example demo source",
+    license_source_url: "https://sos.ga.gov/example-demo-license-board",
+    license_checked_on: "2025-11-02",
+  },
+  {
+    business_name: "GreenEdge Lawn & Garden",
+    trades: "lawn & garden",
+    service_area: "Alpharetta, GA",
+    years_experience: 4,
+    specialties: "Mowing, landscaping, seasonal cleanup",
+    contact_phone: "678-555-0222",
+    license_status: "not_applicable",
+    notes: "Lawn care — no state contractor license claimed for this trade.",
+  },
+  {
+    business_name: "Buckhead Remodel Studio",
+    trades: "remodeling",
+    service_area: "Atlanta, GA 30305",
+    years_experience: 11,
+    specialties: "Interior finish, tile, cabinets",
+    contact_email: "studio@buckhead-remodel.example",
+    license_status: "unverified",
+  },
+  {
+    business_name: "Northside Heat & Air",
+    trades: "HVAC",
+    service_area: "Roswell, GA",
+    years_experience: 3,
+    specialties: "Maintenance plans",
+    license_status: "unverified",
+  },
+  {
+    business_name: "WireWise Electrical LLC",
+    trades: "electrical",
+    service_area: "Atlanta, GA",
+    years_experience: 15,
+    specialties: "Commercial & residential wiring",
+    contact_email: "office@wirewise.example",
+    license_status: "verified",
+    license_number: "EL-GA-77201",
+    license_source_name:
+      "Georgia Secretary of State Professional Licensing — example demo source",
+    license_source_url: "https://sos.ga.gov/example-demo-license-board",
+    license_checked_on: "2026-02-01",
+  },
+  {
+    business_name: "YardCraft Outdoor",
+    trades: "lawn & garden",
+    service_area: "Sandy Springs, GA",
+    years_experience: 8,
+    specialties: "Hardscape, sod, irrigation",
+    license_status: "not_applicable",
+  },
+  {
+    business_name: "Summit Build GC",
+    trades: "general contractor",
+    service_area: "Atlanta, GA",
+    years_experience: 6,
+    specialties: "Whole-home renovations",
+    contact_phone: "404-555-0233",
+    license_status: "unverified",
+  },
+  // Inactive — should not appear in search
+  {
+    business_name: "Inactive Pipe Co",
+    trades: "plumbing",
+    service_area: "Atlanta, GA",
+    years_experience: 10,
+    active: false,
+    license_status: "unverified",
+    notes: "Deactivated seed row — must not appear in search",
+  },
+];
+
 async function main() {
   const dbPath = getDbPath();
   resetDbClient();
@@ -922,8 +1077,50 @@ async function main() {
     }
   }
 
+  let proCount = 0;
+  let proActive = 0;
+  for (const P of servicePros) {
+    const active = P.active === false ? 0 : 1;
+    if (P.license_status === "verified") {
+      if (!P.license_source_name || !P.license_source_url) {
+        throw new Error(
+          `Verified pro "${P.business_name}" must have license_source_name and license_source_url`
+        );
+      }
+    }
+    await db.execute({
+      sql: `INSERT INTO service_pros (
+              business_name, trades, service_area, years_experience,
+              specialties, notes, contact_email, contact_phone, active,
+              license_status, license_number, license_source_name,
+              license_source_url, license_checked_on
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        P.business_name,
+        P.trades,
+        P.service_area,
+        P.years_experience,
+        P.specialties ?? null,
+        P.notes ?? null,
+        P.contact_email ?? null,
+        P.contact_phone ?? null,
+        active,
+        P.license_status,
+        P.license_number ?? null,
+        P.license_source_name ?? null,
+        P.license_source_url ?? null,
+        P.license_checked_on ?? null,
+      ],
+    });
+    proCount++;
+    if (active) proActive++;
+  }
+
   console.log(
     `Seeded ${sellerIds.length} sellers, ${listingCount} listings (${activeCount} active, ${fitmentCount} fitments).`
+  );
+  console.log(
+    `Seeded ${proCount} service pros (${proActive} active).`
   );
   console.log(`DB: ${dbPath}`);
   console.log(
@@ -934,6 +1131,9 @@ async function main() {
   );
   console.log(
     "Required demo row: trunk lid / 2016 Chevrolet Impala / used / Marietta, GA → Metro Used Parts Co"
+  );
+  console.log(
+    "Required services row: Atlanta Plumbing Co / plumbing / Atlanta, GA / unverified"
   );
   console.log(`Demo password for all seed users: ${DEMO_PASSWORD}`);
   console.log("  yard@peachtree-salvage.example (seller)");

@@ -82,5 +82,29 @@ export async function initSchema(db: Client = getDb()): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_fitments_ymm ON listing_fitments(year, make, model);
     CREATE INDEX IF NOT EXISTS idx_messages_thread ON messages(thread_id);
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+    /* Home services — separate from car-parts listings */
+    CREATE TABLE IF NOT EXISTS service_pros (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      business_name TEXT NOT NULL,
+      trades TEXT NOT NULL,
+      service_area TEXT NOT NULL,
+      years_experience INTEGER NOT NULL DEFAULT 0,
+      specialties TEXT,
+      notes TEXT,
+      contact_email TEXT,
+      contact_phone TEXT,
+      active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+      license_status TEXT NOT NULL CHECK (license_status IN ('verified', 'unverified', 'not_applicable')),
+      license_number TEXT,
+      license_source_name TEXT,
+      license_source_url TEXT,
+      license_checked_on TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_service_pros_active ON service_pros(active);
+    CREATE INDEX IF NOT EXISTS idx_service_pros_trades ON service_pros(trades);
+    CREATE INDEX IF NOT EXISTS idx_service_pros_area ON service_pros(service_area);
+    CREATE INDEX IF NOT EXISTS idx_service_pros_license ON service_pros(license_status);
   `);
 }

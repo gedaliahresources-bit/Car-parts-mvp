@@ -28,6 +28,7 @@ Optional: set `SESSION_SECRET` for production cookie signing (a dev default is u
 | Route | Purpose |
 |-------|---------|
 | `/` | Buyer search (part name / # / YMM) — public |
+| `/services` | Home-services pro search (trade + location + license filters) |
 | `/listings/[id]` | Listing detail — public read; message requires login |
 | `/threads/[id]` | In-app messaging (participants only) |
 | `/login` | Sign in (email + password) |
@@ -62,17 +63,29 @@ All seeded users share password: **`demo1234`**
 ```bash
 npm run demo:seed
 npm run demo:verify
+npm run demo:verify-services
 ```
 
-Covers search (A2/A3/A6), create/edit (A1), deactivate (A7), thread/contact (A5), and auth (Peachtree login, hashed passwords, signup seller listing in search, ownership checks).
+`demo:verify` covers search (A2/A3/A6), create/edit (A1), deactivate (A7), thread/contact (A5), and auth (Peachtree login, hashed passwords, signup seller listing in search, ownership checks).
 
 ## Scripts
 
 | Script | Purpose |
 |--------|---------|
-| `npm run demo:seed` | Reset DB — ~3 sellers + buyer + ~29 listings |
-| `npm run demo:verify` | Acceptance checks against the DB |
+| `npm run demo:seed` | Reset DB — sellers, listings, and ~11 active home-service pros |
+| `npm run demo:verify` | Car-parts acceptance checks |
+| `npm run demo:verify-services` | Home-services H1–H4, H6 checks |
 | `npm run dev` | Dev server (default port 3000) |
+
+## Home services (Slice 0–1)
+
+```bash
+npm run demo:seed
+npm run demo:verify-services
+npm run dev
+```
+
+Open `/services?trade=plumbing&location=Atlanta` — **Atlanta Plumbing Co** appears labeled **unverified**. Toggle **Licensed only** to see verified pros with source link (never bare “licensed”).
 
 ## Required seed row
 

@@ -1,0 +1,292 @@
+.main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+.header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.sub {
+  margin-top: 0.35rem;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.form {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.form input[type="text"],
+.form input:not([type]) {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 400;
+  background: #fff;
+}
+
+.filters {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.filters legend {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+.check {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem !important;
+  font-weight: 400 !important;
+  font-size: 0.9rem !important;
+}
+
+.check input {
+  width: auto;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.25rem;
+}
+
+.actions button {
+  padding: 0.55rem 1.1rem;
+  border: none;
+  border-radius: 6px;
+  background: #111;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.actions button:hover {
+  background: #333;
+}
+
+.clear {
+  font-size: 0.9rem;
+  color: #555;
+  text-decoration: underline;
+}
+
+.hint,
+.empty {
+  margin-top: 1.5rem;
+  color: #555;
+}
+
+.empty {
+  padding: 1rem;
+  border: 1px dashed #bbb;
+  border-radius: 8px;
+  background: #f7f7f7;
+}
+
+.error {
+  margin-top: 1rem;
+  color: #a00;
+}
+
+.results {
+  margin-top: 1.75rem;
+}
+
+.results h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  background: #fff;
+}
+
+.cardTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.years {
+  font-weight: 600;
+  color: #111;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.licenseBlock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.badge {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.badgeVerified {
+  background: #e6f4ea;
+  color: #0b6b2c;
+}
+
+.badgeUnverified {
+  background: #f5e0e0;
+  color: #800;
+}
+
+.badgeNa {
+  background: #eee;
+  color: #555;
+}
+
+.licenseDetail {
+  font-size: 0.85rem;
+  color: #444;
+}
+
+.licenseDetail a {
+  text-decoration: underline;
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 1rem;
+  font-size: 0.9rem;
+}
+
+.meta dt {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #777;
+}
+
+.meta dd {
+  margin: 0;
+}
+
+.full {
+  grid-column: 1 / -1;
+}
+
+.notes {
+  margin-top: 0.65rem;
+  font-size: 0.85rem;
+  color: #444;
+}
+
+.selfDecl {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: #777;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sub,
+  .hint,
+  .empty,
+  .clear,
+  .selfDecl {
+    color: #aaa;
+  }
+  .form {
+    background: #141414;
+    border-color: #333;
+  }
+  .form label,
+  .filters legend {
+    color: #ccc;
+  }
+  .form input[type="text"],
+  .form input:not([type]) {
+    background: #1a1a1a;
+    border-color: #444;
+    color: #eee;
+  }
+  .actions button {
+    background: #eee;
+    color: #111;
+  }
+  .empty {
+    background: #141414;
+    border-color: #444;
+  }
+  .card {
+    background: #141414;
+    border-color: #333;
+  }
+  .years {
+    color: #eee;
+  }
+  .meta dt {
+    color: #888;
+  }
+  .notes,
+  .licenseDetail {
+    color: #bbb;
+  }
+  .badgeVerified {
+    background: #143014;
+    color: #8fd99a;
+  }
+  .badgeUnverified {
+    background: #3a1a1a;
+    color: #f0a0a0;
+  }
+  .badgeNa {
+    background: #333;
+    color: #ccc;
+  }
+}

@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "demo:seed": "tsx scripts/seed.ts",
-    "demo:verify": "tsx scripts/verify-search.ts"
+    "demo:verify": "tsx scripts/verify-search.ts",
+    "demo:verify-services": "tsx scripts/verify-services.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
