@@ -37,6 +37,36 @@ function hasAnyCriteria(p: SearchParams): boolean {
   );
 }
 
+
+/** Expand common make nicknames so "Chevy" matches "Chevrolet", etc. */
+function makeSearchTerms(make: string): string[] {
+  const raw = make.trim();
+  if (!raw) return [];
+  const key = raw.toLowerCase();
+  const aliases: Record<string, string[]> = {
+    chevy: ["chevy", "chevrolet"],
+    chevrolet: ["chevy", "chevrolet"],
+    vw: ["vw", "volkswagen"],
+    volkswagen: ["vw", "volkswagen"],
+    gmc: ["gmc"],
+    mercedes: ["mercedes", "mercedes-benz", "mercedes benz"],
+    "mercedes-benz": ["mercedes", "mercedes-benz", "mercedes benz"],
+    "mercedes benz": ["mercedes", "mercedes-benz", "mercedes benz"],
+  };
+  const terms = aliases[key] ?? [raw];
+  // de-dupe case-insensitively while preserving first spelling
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of terms) {
+    const k = t.toLowerCase();
+    if (!seen.has(k)) {
+      seen.add(k);
+      out.push(t);
+    }
+  }
+  return out;
+}
+
 /** Search active listings. Empty criteria returns []. */
 export async function searchListings(
   params: SearchParams
@@ -74,12 +104,19 @@ export async function searchListings(
       }
     }
     if (make) {
-      ymmParts.push("LOWER(f.make) = LOWER(?)");
-      args.push(make);
+      const makeTerms = makeSearchTerms(make);
+      if (makeTerms.length === 1) {
+        ymmParts.push("LOWER(f.make) LIKE LOWER(?)");
+        args.push(`%${makeTerms[0]}%`);
+      } else {
+        const ors = makeTerms.map(() => "LOWER(f.make) LIKE LOWER(?)");
+        ymmParts.push(`(${ors.join(" OR ")})`);
+        for (const t of makeTerms) args.push(`%${t}%`);
+      }
     }
     if (model) {
-      ymmParts.push("LOWER(f.model) = LOWER(?)");
-      args.push(model);
+      ymmParts.push("LOWER(f.model) LIKE LOWER(?)");
+      args.push(`%${model}%`);
     }
     if (ymmParts.length > 0) {
       conditions.push(

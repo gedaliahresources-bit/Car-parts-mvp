@@ -110,6 +110,63 @@ async function main() {
   const empty = await searchListings({ partName: "zzzz-no-such-part-xyzzy" });
   assert(empty.length === 0, "nonsense query returns empty (honest empty state)");
 
+  const steeringCamry = await searchListings({
+    partName: "steering wheel",
+    year: 2008,
+    make: "Toyota",
+    model: "Camry",
+  });
+  assert(
+    steeringCamry.length >= 1,
+    `steering wheel + 2008 Toyota Camry returns ≥1 (got ${steeringCamry.length})`
+  );
+  assert(
+    steeringCamry.some(
+      (r) =>
+        r.part_name.toLowerCase().includes("steering wheel") &&
+        r.condition === "used" &&
+        r.fitments.some(
+          (f) => f.year === 2008 && f.make === "Toyota" && f.model === "Camry"
+        )
+    ),
+    "2008 Camry steering wheel used listing present"
+  );
+
+  const softMake = await searchListings({
+    partName: "steering wheel",
+    year: 2008,
+    make: "toyota",
+    model: "cam",
+  });
+  assert(
+    softMake.length >= 1,
+    `soft LIKE make/model (toyota/cam) still finds Camry steering wheel (got ${softMake.length})`
+  );
+
+  const trunkImpala = await searchListings({
+    partName: "Trunk",
+    year: 2016,
+    make: "Chevy",
+    model: "Impala",
+  });
+  assert(
+    trunkImpala.length >= 1,
+    `trunk + 2016 Chevy Impala returns ≥1 (got ${trunkImpala.length})`
+  );
+  assert(
+    trunkImpala.some(
+      (r) =>
+        /trunk|decklid|deck lid/i.test(r.part_name) &&
+        r.fitments.some(
+          (f) =>
+            f.year === 2016 &&
+            f.make === "Chevrolet" &&
+            f.model === "Impala"
+        )
+    ),
+    "2016 Chevrolet Impala trunk/decklid present; Chevy alias matched"
+  );
+
   // --- A1 create + edit ---
   const sellers = await listSellers();
   assert(sellers.length >= 2, "at least two sellers seeded");

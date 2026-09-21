@@ -114,9 +114,13 @@ export default async function SearchPage({ searchParams }: Props) {
         )}
 
         {hasQuery && !dbError && results.length === 0 && (
-          <p className={styles.empty} role="status">
-            No matches for this search.
-          </p>
+          <div role="status">
+            <p className={styles.empty}>No matches for this search.</p>
+            <p className={styles.hint}>
+              Try fewer filters (part name only) or another year/make/model. Seed
+              covers common parts across several vehicles.
+            </p>
+          </div>
         )}
 
         {results.length > 0 && (
