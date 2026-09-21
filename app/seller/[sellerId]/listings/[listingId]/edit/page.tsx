@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { initSchema } from "@/lib/db";
-import { getUser } from "@/lib/users";
+import { requireOwnSeller } from "@/lib/auth";
 import { getListing } from "@/lib/listings";
 import { ListingForm } from "@/app/components/ListingForm";
 import { SiteNav } from "@/app/components/SiteNav";
@@ -15,8 +15,7 @@ export default async function EditListingPage({ params }: Props) {
   await initSchema();
   const sellerId = Number(params.sellerId);
   const listingId = Number(params.listingId);
-  const seller = await getUser(sellerId);
-  if (!seller || seller.role !== "seller") notFound();
+  const session = await requireOwnSeller(sellerId);
 
   const listing = await getListing(listingId);
   if (!listing || listing.seller_id !== sellerId) notFound();
@@ -30,7 +29,7 @@ export default async function EditListingPage({ params }: Props) {
         </Link>
         <header className={styles.header}>
           <h1>Edit listing #{listing.id}</h1>
-          <p className={styles.sub}>{seller.display_name}</p>
+          <p className={styles.sub}>{session.displayName}</p>
         </header>
         <ListingForm sellerId={sellerId} listing={listing} />
       </main>

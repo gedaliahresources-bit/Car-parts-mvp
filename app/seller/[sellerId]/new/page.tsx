@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { initSchema } from "@/lib/db";
-import { getUser } from "@/lib/users";
+import { requireOwnSeller } from "@/lib/auth";
 import { ListingForm } from "@/app/components/ListingForm";
 import { SiteNav } from "@/app/components/SiteNav";
 import styles from "@/app/shared.module.css";
@@ -13,8 +12,7 @@ type Props = { params: { sellerId: string } };
 export default async function NewListingPage({ params }: Props) {
   await initSchema();
   const sellerId = Number(params.sellerId);
-  const seller = await getUser(sellerId);
-  if (!seller || seller.role !== "seller") notFound();
+  const session = await requireOwnSeller(sellerId);
 
   return (
     <>
@@ -25,7 +23,7 @@ export default async function NewListingPage({ params }: Props) {
         </Link>
         <header className={styles.header}>
           <h1>New listing</h1>
-          <p className={styles.sub}>{seller.display_name}</p>
+          <p className={styles.sub}>{session.displayName}</p>
         </header>
         <ListingForm sellerId={sellerId} />
       </main>

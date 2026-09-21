@@ -33,6 +33,8 @@ export async function initSchema(db: Client = getDb()): Promise<void> {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       role TEXT NOT NULL CHECK (role IN ('buyer', 'seller')),
       display_name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
       contact_email TEXT,
       contact_phone TEXT
     );
@@ -79,5 +81,6 @@ export async function initSchema(db: Client = getDb()): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_listings_part_number ON listings(part_number);
     CREATE INDEX IF NOT EXISTS idx_fitments_ymm ON listing_fitments(year, make, model);
     CREATE INDEX IF NOT EXISTS idx_messages_thread ON messages(thread_id);
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
   `);
 }

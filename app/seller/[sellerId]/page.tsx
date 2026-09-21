@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { initSchema } from "@/lib/db";
-import { getUser } from "@/lib/users";
+import { requireOwnSeller } from "@/lib/auth";
 import { listSellerListings } from "@/lib/listings";
 import {
   deactivateListingAction,
@@ -28,8 +27,7 @@ export default async function SellerInventoryPage({
 }: Props) {
   await initSchema();
   const sellerId = Number(params.sellerId);
-  const seller = await getUser(sellerId);
-  if (!seller || seller.role !== "seller") notFound();
+  const session = await requireOwnSeller(sellerId);
 
   const listings = await listSellerListings(sellerId);
   const flash =
@@ -51,11 +49,8 @@ export default async function SellerInventoryPage({
     <>
       <SiteNav />
       <main className={styles.main}>
-        <Link className={styles.back} href="/seller">
-          ← All sellers
-        </Link>
         <header className={styles.header}>
-          <h1>{seller.display_name}</h1>
+          <h1>{session.displayName}</h1>
           <p className={styles.sub}>
             {listings.length} listing{listings.length === 1 ? "" : "s"}
           </p>

@@ -1,5 +1,7 @@
 .nav {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 1rem;
   padding: 0.75rem 1.25rem;
   border-bottom: 1px solid #ddd;
@@ -13,11 +15,42 @@
   color: #333;
 }
 
+.spacer {
+  flex: 1;
+}
+
+.user {
+  color: #555;
+  font-size: 0.85rem;
+}
+
+.role {
+  color: #888;
+  font-size: 0.8rem;
+}
+
+.logout {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+  color: inherit;
+}
+
 @media (prefers-color-scheme: dark) {
   .nav {
     border-color: #333;
   }
   .nav a {
     color: #ccc;
+  }
+  .user {
+    color: #aaa;
+  }
+  .logout {
+    background: #1a1a1a;
+    border-color: #444;
   }
 }

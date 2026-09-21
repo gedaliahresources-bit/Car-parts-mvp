@@ -11,8 +11,18 @@ import {
   getListing,
   type Condition,
 } from "@/lib/listings";
-import { getUser, getDemoBuyer } from "@/lib/users";
-import { getOrCreateThread, addMessage } from "@/lib/threads";
+import {
+  createUser,
+  authenticateUser,
+  userToSession,
+  getUser,
+} from "@/lib/users";
+import { getOrCreateThread, addMessage, getThread } from "@/lib/threads";
+import {
+  createSession,
+  destroySession,
+  getSession,
+} from "@/lib/auth";
 
 const CONDITIONS = new Set(["new", "used", "refurbished", "core"]);
 
@@ -21,9 +31,76 @@ function str(fd: FormData, key: string): string {
   return typeof v === "string" ? v : "";
 }
 
+function safeNext(raw: string): string {
+  if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  return "/";
+}
+
+export async function signUpAction(formData: FormData) {
+  await initSchema();
+  const roleRaw = str(formData, "role");
+  const role = roleRaw === "seller" ? "seller" : "buyer";
+  const next = safeNext(str(formData, "next") || (role === "seller" ? "/seller" : "/"));
+
+  try {
+    const user = await createUser({
+      role,
+      display_name: str(formData, "display_name"),
+      email: str(formData, "email"),
+      password: str(formData, "password"),
+      contact_email: str(formData, "contact_email") || null,
+      contact_phone: str(formData, "contact_phone") || null,
+    });
+    await createSession(userToSession(user));
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Sign up failed";
+    redirect(`/signup?error=${encodeURIComponent(msg)}`);
+  }
+
+  revalidatePath("/");
+  redirect(next);
+}
+
+export async function signInAction(formData: FormData) {
+  await initSchema();
+  const email = str(formData, "email");
+  const password = str(formData, "password");
+  const next = safeNext(str(formData, "next") || "/");
+
+  const user = await authenticateUser(email, password);
+  if (!user) {
+    redirect(`/login?error=${encodeURIComponent("Invalid email or password")}`);
+  }
+
+  await createSession(userToSession(user));
+  revalidatePath("/");
+
+  if (next === "/" && user.role === "seller") {
+    redirect(`/seller/${user.id}`);
+  }
+  redirect(next);
+}
+
+export async function signOutAction() {
+  await destroySession();
+  revalidatePath("/");
+  redirect("/");
+}
+
+async function requireOwnSellerAction(sellerId: number) {
+  const session = await getSession();
+  if (!session) redirect(`/login?next=${encodeURIComponent(`/seller/${sellerId}`)}`);
+  if (session.role !== "seller" || session.id !== sellerId) {
+    throw new Error("Not allowed to manage this seller inventory");
+  }
+  return session;
+}
+
 export async function createListingAction(formData: FormData) {
   await initSchema();
   const sellerId = Number(str(formData, "seller_id"));
+  await requireOwnSellerAction(sellerId);
+
   const seller = await getUser(sellerId);
   if (!seller || seller.role !== "seller") {
     throw new Error("Invalid seller");
@@ -58,6 +135,8 @@ export async function updateListingAction(formData: FormData) {
   await initSchema();
   const listingId = Number(str(formData, "listing_id"));
   const sellerId = Number(str(formData, "seller_id"));
+  await requireOwnSellerAction(sellerId);
+
   const existing = await getListing(listingId);
   if (!existing || existing.seller_id !== sellerId) {
     throw new Error("Listing not found for seller");
@@ -92,6 +171,8 @@ export async function deactivateListingAction(formData: FormData) {
   await initSchema();
   const listingId = Number(str(formData, "listing_id"));
   const sellerId = Number(str(formData, "seller_id"));
+  await requireOwnSellerAction(sellerId);
+
   const existing = await getListing(listingId);
   if (!existing || existing.seller_id !== sellerId) {
     throw new Error("Listing not found for seller");
@@ -107,6 +188,8 @@ export async function reactivateListingAction(formData: FormData) {
   await initSchema();
   const listingId = Number(str(formData, "listing_id"));
   const sellerId = Number(str(formData, "seller_id"));
+  await requireOwnSellerAction(sellerId);
+
   const existing = await getListing(listingId);
   if (!existing || existing.seller_id !== sellerId) {
     throw new Error("Listing not found for seller");
@@ -125,18 +208,27 @@ export async function startThreadAction(formData: FormData) {
   if (!listing || !listing.active) {
     throw new Error("Listing not available");
   }
-  const buyer = await getDemoBuyer();
-  if (!buyer) throw new Error("No demo buyer — run npm run demo:seed");
+
+  const session = await getSession();
+  if (!session) {
+    redirect(
+      `/login?next=${encodeURIComponent(`/listings/${listingId}`)}&error=${encodeURIComponent("Log in to message the seller")}`
+    );
+  }
+
+  if (session.id === listing.seller_id) {
+    throw new Error("You cannot message your own listing");
+  }
 
   const threadId = await getOrCreateThread({
     listingId,
-    buyerId: buyer.id,
+    buyerId: session.id,
     sellerId: listing.seller_id,
   });
 
   const opener = str(formData, "opener").trim();
   if (opener) {
-    await addMessage({ threadId, senderId: buyer.id, body: opener });
+    await addMessage({ threadId, senderId: session.id, body: opener });
   }
 
   revalidatePath(`/threads/${threadId}`);
@@ -146,9 +238,20 @@ export async function startThreadAction(formData: FormData) {
 export async function sendMessageAction(formData: FormData) {
   await initSchema();
   const threadId = Number(str(formData, "thread_id"));
-  const senderId = Number(str(formData, "sender_id"));
   const body = str(formData, "body");
-  await addMessage({ threadId, senderId, body });
+
+  const session = await getSession();
+  if (!session) {
+    redirect(`/login?next=${encodeURIComponent(`/threads/${threadId}`)}`);
+  }
+
+  const thread = await getThread(threadId);
+  if (!thread) throw new Error("Thread not found");
+  if (session.id !== thread.buyer_id && session.id !== thread.seller_id) {
+    throw new Error("Not a participant of this thread");
+  }
+
+  await addMessage({ threadId, senderId: session.id, body });
   revalidatePath(`/threads/${threadId}`);
   redirect(`/threads/${threadId}`);
 }

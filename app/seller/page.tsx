@@ -1,14 +1,20 @@
 import Link from "next/link";
-import { initSchema } from "@/lib/db";
-import { listSellers } from "@/lib/users";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth";
 import { SiteNav } from "@/app/components/SiteNav";
 import styles from "@/app/shared.module.css";
 
 export const dynamic = "force-dynamic";
 
-export default async function SellerPickerPage() {
-  await initSchema();
-  const sellers = await listSellers();
+/** Gate: login required; sellers go to their own inventory. No open picker. */
+export default async function SellerGatePage() {
+  const session = await getSession();
+  if (!session) {
+    redirect("/login?next=/seller");
+  }
+  if (session.role === "seller") {
+    redirect(`/seller/${session.id}`);
+  }
 
   return (
     <>
@@ -17,28 +23,15 @@ export default async function SellerPickerPage() {
         <header className={styles.header}>
           <h1>Seller inventory</h1>
           <p className={styles.sub}>
-            Demo auth stub — pick a seeded seller to manage listings.
+            You&apos;re signed in as a buyer. Create a seller account to manage
+            listings (or sign out and sign up as a seller).
           </p>
         </header>
-        {sellers.length === 0 ? (
-          <p className={styles.empty}>
-            No sellers found. Run <code>npm run demo:seed</code>.
-          </p>
-        ) : (
-          <ul className={styles.sellerPick}>
-            {sellers.map((s) => (
-              <li key={s.id}>
-                <Link href={`/seller/${s.id}`}>
-                  <strong>{s.display_name}</strong>
-                  <div className={styles.sub}>
-                    {[s.contact_email, s.contact_phone].filter(Boolean).join(" · ") ||
-                      "No contact on file"}
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+        <p style={{ marginTop: "1rem" }}>
+          <Link href="/signup">Sign up as seller</Link>
+          {" · "}
+          <Link href="/">Back to search</Link>
+        </p>
       </main>
     </>
   );

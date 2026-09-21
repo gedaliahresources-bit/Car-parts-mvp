@@ -1,9 +1,11 @@
 /**
  * Reset DB and load demo sellers + listings.
+ * All seeded accounts use password: demo1234
  * Run: npm run demo:seed
  */
 import fs from "fs";
 import { getDb, getDbPath, initSchema, resetDbClient } from "../lib/db";
+import { hashPassword } from "../lib/password";
 
 type Condition = "new" | "used" | "refurbished" | "core";
 
@@ -19,22 +21,27 @@ type SeedListing = {
   active?: boolean;
 };
 
+const DEMO_PASSWORD = "demo1234";
+
 const sellers = [
   {
     role: "seller" as const,
     display_name: "Peachtree Auto Salvage",
+    email: "yard@peachtree-salvage.example",
     contact_email: "yard@peachtree-salvage.example",
     contact_phone: "404-555-0101",
   },
   {
     role: "seller" as const,
     display_name: "Metro Used Parts Co",
+    email: "sales@metrousedparts.example",
     contact_email: "sales@metrousedparts.example",
     contact_phone: null,
   },
   {
     role: "seller" as const,
     display_name: "Southern Yard Supply",
+    email: "parts@southern-yard.example",
     contact_email: null,
     contact_phone: "678-555-0199",
   },
@@ -327,20 +334,22 @@ async function main() {
   const db = getDb();
   await initSchema(db);
 
+  const password_hash = hashPassword(DEMO_PASSWORD);
   const sellerIds: number[] = [];
   for (const s of sellers) {
     const r = await db.execute({
-      sql: `INSERT INTO users (role, display_name, contact_email, contact_phone)
-            VALUES (?, ?, ?, ?) RETURNING id`,
-      args: [s.role, s.display_name, s.contact_email, s.contact_phone],
+      sql: `INSERT INTO users (role, display_name, email, password_hash, contact_email, contact_phone)
+            VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
+      args: [s.role, s.display_name, s.email, password_hash, s.contact_email, s.contact_phone],
     });
     sellerIds.push(Number(r.rows[0].id));
   }
 
-  // One buyer for future slices
+  // Demo buyer (can message sellers)
   await db.execute({
-    sql: `INSERT INTO users (role, display_name, contact_email, contact_phone)
-          VALUES ('buyer', 'Demo Buyer', 'buyer@example.com', NULL)`,
+    sql: `INSERT INTO users (role, display_name, email, password_hash, contact_email, contact_phone)
+          VALUES ('buyer', 'Demo Buyer', 'buyer@example.com', ?, 'buyer@example.com', NULL)`,
+    args: [password_hash],
   });
 
   let listingCount = 0;
@@ -381,6 +390,11 @@ async function main() {
   console.log(
     "Required demo row: alternator / 2015 Honda Civic / used / Atlanta, GA → Peachtree Auto Salvage"
   );
+  console.log(`Demo password for all seed users: ${DEMO_PASSWORD}`);
+  console.log("  yard@peachtree-salvage.example (seller)");
+  console.log("  sales@metrousedparts.example (seller)");
+  console.log("  parts@southern-yard.example (seller)");
+  console.log("  buyer@example.com (buyer)");
 }
 
 main().catch((err) => {

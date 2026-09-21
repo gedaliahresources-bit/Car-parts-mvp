@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { initSchema } from "@/lib/db";
 import { getThread } from "@/lib/threads";
-import { getDemoBuyer } from "@/lib/users";
+import { getSession } from "@/lib/auth";
 import { sendMessageAction } from "@/app/actions";
 import { SiteNav } from "@/app/components/SiteNav";
 import styles from "@/app/shared.module.css";
@@ -17,7 +17,14 @@ export default async function ThreadPage({ params }: Props) {
   const thread = await getThread(id);
   if (!thread) notFound();
 
-  const buyer = await getDemoBuyer();
+  const session = await getSession();
+  if (!session) {
+    redirect(`/login?next=${encodeURIComponent(`/threads/${id}`)}`);
+  }
+  if (session.id !== thread.buyer_id && session.id !== thread.seller_id) {
+    notFound();
+  }
+
   const hasContact = Boolean(thread.contact_email || thread.contact_phone);
 
   return (
@@ -64,21 +71,18 @@ export default async function ThreadPage({ params }: Props) {
           </ul>
         )}
 
-        {buyer && (
-          <section className={styles.messageBox}>
-            <form action={sendMessageAction}>
-              <input type="hidden" name="thread_id" value={thread.id} />
-              <input type="hidden" name="sender_id" value={buyer.id} />
-              <textarea
-                name="body"
-                rows={3}
-                required
-                placeholder="Write a message…"
-              />
-              <button type="submit">Send</button>
-            </form>
-          </section>
-        )}
+        <section className={styles.messageBox}>
+          <form action={sendMessageAction}>
+            <input type="hidden" name="thread_id" value={thread.id} />
+            <textarea
+              name="body"
+              rows={3}
+              required
+              placeholder="Write a message…"
+            />
+            <button type="submit">Send</button>
+          </form>
+        </section>
       </main>
     </>
   );

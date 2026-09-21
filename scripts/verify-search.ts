@@ -1,8 +1,8 @@
 /**
- * Prove search + CRUD + handoff against seeded DB.
+ * Prove search + CRUD + handoff + auth against seeded DB.
  * Run after: npm run demo:seed
  */
-import { initSchema } from "../lib/db";
+import { initSchema, getDb } from "../lib/db";
 import { searchListings } from "../lib/search";
 import {
   createListing,
@@ -10,8 +10,17 @@ import {
   setListingActive,
   getListing,
 } from "../lib/listings";
-import { listSellers, getDemoBuyer } from "../lib/users";
+import {
+  listSellers,
+  getDemoBuyer,
+  authenticateUser,
+  createUser,
+  getUserByEmail,
+} from "../lib/users";
 import { getOrCreateThread, addMessage, getThread } from "../lib/threads";
+import { verifyPassword } from "../lib/password";
+
+const DEMO_PASSWORD = "demo1234";
 
 function assert(cond: boolean, msg: string) {
   if (!cond) throw new Error(`FAIL: ${msg}`);
@@ -21,7 +30,40 @@ function assert(cond: boolean, msg: string) {
 async function main() {
   await initSchema();
 
-  // --- A2 / A3 / A6 (search) ---
+  // --- Auth ---
+  const peach = await authenticateUser(
+    "yard@peachtree-salvage.example",
+    DEMO_PASSWORD
+  );
+  assert(!!peach, "seeded Peachtree authenticates with demo1234");
+  assert(peach!.role === "seller", "Peachtree is a seller");
+  assert(
+    peach!.display_name === "Peachtree Auto Salvage",
+    "Peachtree display name matches"
+  );
+
+  const badPw = await authenticateUser(
+    "yard@peachtree-salvage.example",
+    "wrong-password"
+  );
+  assert(!badPw, "wrong password rejected");
+
+  const buyerAuth = await authenticateUser("buyer@example.com", DEMO_PASSWORD);
+  assert(
+    !!buyerAuth && buyerAuth.role === "buyer",
+    "seeded demo buyer authenticates"
+  );
+
+  const db = getDb();
+  const hashRow = await db.execute({
+    sql: `SELECT password_hash FROM users WHERE email = ?`,
+    args: ["yard@peachtree-salvage.example"],
+  });
+  const storedHash = String(hashRow.rows[0].password_hash);
+  assert(!storedHash.includes(DEMO_PASSWORD), "password not stored as plaintext");
+  assert(verifyPassword(DEMO_PASSWORD, storedHash), "scrypt hash verifies");
+
+  // --- Search A2/A3/A6 ---
   const byName = await searchListings({ partName: "alternator" });
   assert(byName.length > 0, `search "alternator" returns results (got ${byName.length})`);
   const civicAlt = byName.find(
@@ -68,10 +110,11 @@ async function main() {
   const empty = await searchListings({ partName: "zzzz-no-such-part-xyzzy" });
   assert(empty.length === 0, "nonsense query returns empty (honest empty state)");
 
-  // --- A1: create + edit via lib (same path as seller UI) ---
+  // --- A1 create + edit ---
   const sellers = await listSellers();
-  assert(sellers.length >= 1, "at least one seller seeded");
+  assert(sellers.length >= 2, "at least two sellers seeded");
   const seller = sellers[0];
+  const otherSeller = sellers[1];
 
   const createdId = await createListing({
     seller_id: seller.id,
@@ -88,6 +131,11 @@ async function main() {
   assert(
     created!.fitments.some((f) => f.year === 2019 && f.make === "Honda"),
     "A1 create stores fitment"
+  );
+  assert(created!.seller_id === seller.id, "A1 listing owned by creating seller");
+  assert(
+    created!.seller_id !== otherSeller.id,
+    "auth: other seller is not owner of Peachtree listing"
   );
 
   await updateListing(createdId, {
@@ -110,16 +158,44 @@ async function main() {
   const foundCreated = await searchListings({ partNumber: "VERIFY-ROTOR-001" });
   assert(foundCreated.length === 1, "A1 created listing appears in search");
 
-  // --- A7: deactivate → gone from search ---
+  // --- Signup seller ---
+  const unique = `verify-seller-${Date.now()}@example.com`;
+  const newSeller = await createUser({
+    role: "seller",
+    display_name: "Verify New Yard",
+    email: unique,
+    password: "demo1234",
+    contact_email: unique,
+  });
+  const newListingId = await createListing({
+    seller_id: newSeller.id,
+    part_name: "verify-auth bumper",
+    part_number: "VERIFY-AUTH-BUMPER",
+    condition: "used",
+    location: "Decatur, GA",
+    fitments: [{ year: 2018, make: "Honda", model: "Civic" }],
+  });
+  const inSearch = await searchListings({ partNumber: "VERIFY-AUTH-BUMPER" });
+  assert(
+    inSearch.length === 1 && inSearch[0].seller_name === "Verify New Yard",
+    "auth: signup seller listing appears in search"
+  );
+  const newListing = await getListing(newListingId);
+  assert(
+    newListing!.seller_id === newSeller.id &&
+      newListing!.seller_id !== otherSeller.id,
+    "auth: other seller cannot claim new signup listing"
+  );
+  await setListingActive(newListingId, false);
+
+  // --- A7 deactivate ---
   await setListingActive(createdId, false);
   const afterDeact = await searchListings({ partNumber: "VERIFY-ROTOR-001" });
   assert(afterDeact.length === 0, "A7 deactivated listing gone from search");
   const stillThere = await getListing(createdId);
   assert(stillThere?.active === false, "A7 listing remains in DB as inactive");
 
-  // cleanup test listing reactivation not required; leave inactive
-
-  // --- A5: thread + contact handoff ---
+  // --- A5 thread + handoff ---
   const buyer = await getDemoBuyer();
   assert(!!buyer, "demo buyer exists");
 
@@ -143,16 +219,21 @@ async function main() {
   const thread = await getThread(threadId);
   assert(!!thread, "A5 thread opens");
   assert(thread!.seller_id === listing!.seller_id, "A5 thread tied to listing seller");
+  assert(thread!.buyer_id === buyer!.id, "A5 thread buyer is demo buyer");
   assert(thread!.messages.length >= 1, "A5 message stored on thread");
+  assert(
+    thread!.messages.some((m) => m.sender_id === buyer!.id),
+    "A5 message attributed to buyer"
+  );
   assert(
     Boolean(thread!.contact_email || thread!.contact_phone),
     "A5 contact available on thread handoff"
   );
 
-  // Seller with no email+phone? Southern has phone only — fine.
-  // Metro has email only — fine.
+  const byEmail = await getUserByEmail("yard@peachtree-salvage.example");
+  assert(!!byEmail && byEmail.id === peach!.id, "getUserByEmail finds Peachtree");
 
-  console.log("\nAll demo:verify checks passed (search + A1 + A7 + A5).");
+  console.log("\nAll demo:verify checks passed (search + A1 + A7 + A5 + auth).");
 }
 
 main().catch((err) => {
