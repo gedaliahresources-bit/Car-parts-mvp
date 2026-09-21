@@ -5,7 +5,7 @@ Local marketplace loop: sellers list parts → buyers search → match via in-ap
 ## Stack
 
 - Next.js 14 (App Router) + TypeScript
-- SQLite via `@libsql/client` (`data/car-parts.db`)
+- SQLite via `@libsql/client` — local file (`data/car-parts.db`) or remote **Turso** (`libsql://` / `https://`)
 - Server actions for auth, seller CRUD, messaging, pro CRUD, service leads
 - Passwords: Node `scrypt` (never plaintext)
 - Sessions: signed JWT in an **HttpOnly** cookie (`jose`)
@@ -90,7 +90,7 @@ npm run demo:verify-services
 
 | Script | Purpose |
 |--------|---------|
-| `npm run demo:seed` | Reset DB — sellers, listings, home-service pros + demo pro user |
+| `npm run demo:seed` | Local: wipe file DB + seed. Turso: soft-seed if empty (no wipe unless `SEED_RESET=1`) |
 | `npm run demo:verify` | Car-parts acceptance checks |
 | `npm run demo:verify-services` | Home-services H1–H7 |
 | `npm run dev` | Dev server (default port 3000) |
@@ -111,18 +111,44 @@ npm run demo:verify-services
 - license: **unverified**
 - owner: `pro@atlanta-plumbing.example` / `demo1234`
 
-## Deploy on Render
+## Deploy on Vercel + Turso (recommended)
 
 GitHub repo: [`gedaliahresources-bit/Car-parts-mvp`](https://github.com/gedaliahresources-bit/Car-parts-mvp)
 
-1. In [Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint** → connect the GitHub repo above (uses `render.yaml`).
-2. Or create a **Web Service** manually with the same settings as `render.yaml`:
+Vercel has no persistent disk and no long-running `start:prod`. Use Next.js defaults + a remote Turso (libsql) database.
+
+1. **Create a Turso database** ([turso.tech](https://turso.tech) / CLI). Copy the database URL (`libsql://…` or `https://…`) and an auth token.
+2. **Import the GitHub repo** in [Vercel](https://vercel.com) → Add New → Project → `gedaliahresources-bit/Car-parts-mvp`.
+3. **Environment variables** (Production + Preview as needed):
+   - `TURSO_DATABASE_URL` — Turso URL
+   - `TURSO_AUTH_TOKEN` — Turso auth token
+   - `SESSION_SECRET` — long random string for cookie signing
+4. **Build settings:** Framework Preset **Next.js**. Build Command `next build` (default). Output: Next.js defaults — do **not** set a custom start command.
+5. **Seed after first deploy** (pick one):
+   - **Automatic (preferred):** On first request, `initSchema()` creates tables and soft-seeds if `users` is empty. Result is cached in-memory per serverless isolate so later requests are not blocked by a seed check.
+   - **Manual soft seed from your machine:**
+     ```bash
+     export TURSO_DATABASE_URL=libsql://…
+     export TURSO_AUTH_TOKEN=…
+     npm run demo:seed
+     ```
+     Against Turso, `demo:seed` **does not delete** the remote DB. If users already exist it is a no-op. To wipe and re-seed remotely: `SEED_RESET=1 npm run demo:seed`.
+   - Optional: `vercel env pull` then run the same commands locally.
+
+Aliases also accepted: `DATABASE_URL` / `DATABASE_AUTH_TOKEN` instead of the `TURSO_*` names.
+
+Local default is unchanged: file SQLite under `./data` unless `DATA_DIR` or `DATABASE_PATH` is set. No Turso env → local file mode.
+
+## Deploy on Render (alternate / paid disk)
+
+`render.yaml` remains for a **Node web service + persistent disk** (local file SQLite). This path needs a **paid** Render plan for disks; prefer **Vercel + Turso** for free/serverless.
+
+1. [Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint** → connect the GitHub repo (uses `render.yaml`).
+2. Or create a **Web Service** manually:
    - **Runtime:** Node
    - **Build:** `npm install && npm run build`
-   - **Start:** `npm run start:prod`
+   - **Start:** `npm run start:prod` (runs `ensure-seed` then `next start`)
    - **Env:** `NODE_VERSION=20`, `SESSION_SECRET` (generate), `DATA_DIR=/var/data`
    - **Disk:** name `openlot-data`, mount `/var/data`, size 1 GB
    - **Health check path:** `/`
-3. **Plan note:** Free web services may sleep on idle. **Persistent disks require a paid plan** (Starter or higher) — this Blueprint uses `starter` for that reason. Without a disk, SQLite under `/var/data` will not survive deploys/restarts.
-
-Local default is unchanged: SQLite lives under `./data` unless `DATA_DIR` or `DATABASE_PATH` is set.
+3. Free web services may sleep; **persistent disks require Starter+**. Without a disk, SQLite under `/var/data` will not survive deploys/restarts.

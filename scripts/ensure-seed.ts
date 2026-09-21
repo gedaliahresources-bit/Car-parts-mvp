@@ -1,20 +1,38 @@
 /**
  * Production startup helper: seed demo data only when the DB is missing
  * or the users table is empty. No-op if data already exists.
+ *
+ * Local file SQLite: missing file or empty users → seed.
+ * Remote Turso: never delete the DB; if users count 0 → seedDemoData; else no-op.
  */
 import fs from "fs";
-import { getDb, getDbPath, initSchema, resetDbClient } from "../lib/db";
+import {
+  getDb,
+  getDbPath,
+  initSchema,
+  isRemoteDb,
+  resetDbClient,
+  setAutoSeedDisabled,
+} from "../lib/db";
 import { seedDemoData } from "./seed";
 
 async function usersExist(): Promise<boolean> {
-  const dbPath = getDbPath();
-  if (!fs.existsSync(dbPath)) {
-    return false;
+  if (!isRemoteDb()) {
+    const dbPath = getDbPath();
+    if (!fs.existsSync(dbPath)) {
+      return false;
+    }
   }
 
   try {
     const db = getDb();
-    await initSchema(db);
+    // Schema only — we decide seed ourselves (avoid double soft-seed race)
+    setAutoSeedDisabled(true);
+    try {
+      await initSchema(db);
+    } finally {
+      setAutoSeedDisabled(false);
+    }
     const result = await db.execute("SELECT COUNT(*) AS c FROM users");
     const count = Number(result.rows[0]?.c ?? 0);
     return count > 0;
@@ -30,16 +48,23 @@ async function usersExist(): Promise<boolean> {
 
 async function main() {
   const dbPath = getDbPath();
-  console.log(`[ensure-seed] Checking DB at ${dbPath}`);
+  const mode = isRemoteDb() ? "remote Turso" : "local file";
+  console.log(`[ensure-seed] Checking DB (${mode}) at ${dbPath}`);
 
   if (await usersExist()) {
     console.log("[ensure-seed] Data already present — skipping seed.");
     return;
   }
 
-  console.log(
-    "[ensure-seed] DB missing or users table empty — running demo seed..."
-  );
+  if (isRemoteDb()) {
+    console.log(
+      "[ensure-seed] Remote users empty — soft-seeding (will not wipe)..."
+    );
+  } else {
+    console.log(
+      "[ensure-seed] DB missing or users table empty — running demo seed..."
+    );
+  }
   resetDbClient();
   await seedDemoData();
   console.log("[ensure-seed] Seed complete.");

@@ -4,7 +4,16 @@
  * Run: npm run demo:seed
  */
 import fs from "fs";
-import { getDb, getDbPath, initSchema, resetDbClient } from "../lib/db";
+import {
+  getDb,
+  getDbPath,
+  initSchema,
+  isRemoteDb,
+  resetDbClient,
+  setAutoSeedDisabled,
+  wipeAllData,
+  markSeedChecked,
+} from "../lib/db";
 import { hashPassword } from "../lib/password";
 
 type Condition = "new" | "used" | "refurbished" | "core";
@@ -1018,6 +1027,8 @@ const servicePros: SeedPro[] = [
 
 /** Populate an empty DB with demo sellers, listings, and service pros. */
 export async function seedDemoData(): Promise<void> {
+  setAutoSeedDisabled(true);
+  try {
   const dbPath = getDbPath();
   const db = getDb();
   await initSchema(db);
@@ -1158,11 +1169,51 @@ export async function seedDemoData(): Promise<void> {
   console.log(
     "  pro@atlanta-plumbing.example (pro — owns Atlanta Plumbing Co)"
   );
+  } finally {
+    setAutoSeedDisabled(false);
+    markSeedChecked();
+  }
 }
 
 async function main() {
-  const dbPath = getDbPath();
   resetDbClient();
+
+  if (isRemoteDb()) {
+    const dbPath = getDbPath();
+    console.log(`Remote Turso DB: ${dbPath}`);
+    const db = getDb();
+    // Schema only — soft-seed disabled while we decide wipe vs insert
+    setAutoSeedDisabled(true);
+    try {
+      await initSchema(db);
+    } finally {
+      setAutoSeedDisabled(false);
+    }
+
+    if (process.env.SEED_RESET === "1") {
+      console.log("SEED_RESET=1 — wiping remote data then re-seeding...");
+      await wipeAllData(db);
+      resetDbClient();
+      await seedDemoData();
+      return;
+    }
+
+    const result = await db.execute("SELECT COUNT(*) AS c FROM users");
+    const count = Number(result.rows[0]?.c ?? 0);
+    if (count > 0) {
+      markSeedChecked();
+      console.log(
+        `Remote DB already has ${count} user(s) — soft no-op. Set SEED_RESET=1 to wipe and re-seed.`
+      );
+      return;
+    }
+
+    console.log("Remote users table empty — soft-seeding demo data (no wipe)...");
+    await seedDemoData();
+    return;
+  }
+
+  const dbPath = getDbPath();
   if (fs.existsSync(dbPath)) {
     fs.unlinkSync(dbPath);
     console.log(`Deleted existing DB: ${dbPath}`);

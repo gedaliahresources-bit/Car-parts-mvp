@@ -2,7 +2,23 @@ import { createClient, type Client } from "@libsql/client";
 import path from "path";
 import fs from "fs";
 
-function resolveDbPath(): string {
+/** Remote Turso / libsql HTTP URL, or null for local file SQLite. */
+function getRemoteUrl(): string | null {
+  const url =
+    process.env.TURSO_DATABASE_URL?.trim() ||
+    process.env.DATABASE_URL?.trim() ||
+    "";
+  if (url.startsWith("libsql://") || url.startsWith("https://")) {
+    return url;
+  }
+  return null;
+}
+
+export function isRemoteDb(): boolean {
+  return getRemoteUrl() !== null;
+}
+
+function resolveLocalDbPath(): string {
   if (process.env.DATABASE_PATH) {
     return process.env.DATABASE_PATH;
   }
@@ -11,30 +27,86 @@ function resolveDbPath(): string {
 }
 
 let client: Client | null = null;
+/** Skip CREATE after first success in this process (Vercel isolate). */
+let schemaInitialized = false;
+/** Skip users-count / soft-seed after first check in this process. */
+let seedChecked = false;
+/** Prevent soft-seed while seedDemoData is inserting. */
+let autoSeedDisabled = false;
 
 export function getDbPath(): string {
-  return resolveDbPath();
+  const remote = getRemoteUrl();
+  if (remote) return remote;
+  return resolveLocalDbPath();
 }
 
 export function getDb(): Client {
   if (!client) {
-    const dbPath = resolveDbPath();
-    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-    client = createClient({ url: `file:${dbPath}` });
+    const remote = getRemoteUrl();
+    if (remote) {
+      client = createClient({
+        url: remote,
+        authToken:
+          process.env.TURSO_AUTH_TOKEN ||
+          process.env.DATABASE_AUTH_TOKEN ||
+          undefined,
+      });
+    } else {
+      const dbPath = resolveLocalDbPath();
+      fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+      client = createClient({ url: `file:${dbPath}` });
+    }
   }
   return client;
 }
 
-/** Reset the cached client (used by seed after deleting the DB file). */
+/** Reset the cached client (used by seed after deleting the local DB file). */
 export function resetDbClient(): void {
   if (client) {
-    client.close();
+    try {
+      client.close();
+    } catch {
+      /* ignore close errors on remote */
+    }
     client = null;
+  }
+  schemaInitialized = false;
+  seedChecked = false;
+}
+
+/**
+ * Soft-seed once per process when users table is empty.
+ * Safe for Vercel serverless: in-memory flag avoids re-checking every request.
+ * Never deletes remote data.
+ */
+async function ensureSeedIfEmpty(db: Client): Promise<void> {
+  if (seedChecked || autoSeedDisabled) return;
+
+  try {
+    const result = await db.execute("SELECT COUNT(*) AS c FROM users");
+    const count = Number(result.rows[0]?.c ?? 0);
+    if (count > 0) {
+      seedChecked = true;
+      return;
+    }
+
+    // Mark before seed to block re-entry from seedDemoData → initSchema
+    seedChecked = true;
+    const { seedDemoData } = await import("../scripts/seed");
+    await seedDemoData();
+  } catch (err) {
+    seedChecked = false;
+    console.warn("[db] Soft-seed check failed; will retry on next initSchema.", err);
   }
 }
 
+/**
+ * Ensure schema exists. On first use in a process, also soft-seed if users empty.
+ * Call this from pages/actions (already the pattern). Cached after first success.
+ */
 export async function initSchema(db: Client = getDb()): Promise<void> {
-  await db.executeMultiple(`
+  if (!schemaInitialized) {
+    await db.executeMultiple(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       role TEXT NOT NULL CHECK (role IN ('buyer', 'seller')),
@@ -144,4 +216,36 @@ export async function initSchema(db: Client = getDb()): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_service_leads_homeowner ON service_leads(homeowner_id);
     CREATE INDEX IF NOT EXISTS idx_service_messages_thread ON service_messages(thread_id);
   `);
+    schemaInitialized = true;
+  }
+
+  if (!autoSeedDisabled) {
+    await ensureSeedIfEmpty(db);
+  }
+}
+
+/** Used by seedDemoData / ensure-seed so soft-seed does not re-enter. */
+export function setAutoSeedDisabled(disabled: boolean): void {
+  autoSeedDisabled = disabled;
+}
+
+/** Mark soft-seed as done for this process (after a successful seed). */
+export function markSeedChecked(): void {
+  seedChecked = true;
+}
+
+/** Delete all rows (remote SEED_RESET=1 only). Does not drop schema. */
+export async function wipeAllData(db: Client = getDb()): Promise<void> {
+  await db.executeMultiple(`
+    DELETE FROM service_messages;
+    DELETE FROM service_threads;
+    DELETE FROM service_leads;
+    DELETE FROM service_pros;
+    DELETE FROM messages;
+    DELETE FROM threads;
+    DELETE FROM listing_fitments;
+    DELETE FROM listings;
+    DELETE FROM users;
+  `);
+  seedChecked = false;
 }
