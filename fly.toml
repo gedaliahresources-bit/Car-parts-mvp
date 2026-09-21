@@ -1,0 +1,36 @@
+# Openlot on Fly.io — persistent SQLite via volume at /data
+# App name: openlot (if taken: fly apps create openlot-app and set app = "openlot-app")
+app = "openlot"
+primary_region = "iad"
+
+[build]
+
+[env]
+  DATA_DIR = "/data"
+  NODE_ENV = "production"
+  # SESSION_SECRET must be set via: fly secrets set SESSION_SECRET=...
+  # Do not commit real secrets.
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "30s"
+    method = "GET"
+    path = "/"
+
+[[mounts]]
+  source = "openlot_data"
+  destination = "/data"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

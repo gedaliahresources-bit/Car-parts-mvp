@@ -152,3 +152,41 @@ Local default is unchanged: file SQLite under `./data` unless `DATA_DIR` or `DAT
    - **Disk:** name `openlot-data`, mount `/var/data`, size 1 GB
    - **Health check path:** `/`
 3. Free web services may sleep; **persistent disks require Starter+**. Without a disk, SQLite under `/var/data` will not survive deploys/restarts.
+
+## Deploy on Fly.io (persistent SQLite volume)
+
+Runs the Docker image with a Fly volume mounted at `/data` (`DATA_DIR=/data`). Local, Turso/Vercel, and Render paths stay unchanged.
+
+### One-time setup
+
+```bash
+# Install flyctl: https://fly.io/docs/hands-on/install-flyctl/
+fly auth login
+
+# Create the app (use openlot-app if "openlot" is taken)
+fly apps create openlot
+# or: fly apps create openlot-app
+# If you used openlot-app, set app = "openlot-app" in fly.toml
+
+# Persistent SQLite volume (1 GB) in primary region iad
+fly volumes create openlot_data --size 1 --region iad --app openlot
+
+# Cookie signing secret (generate your own; never commit it)
+fly secrets set SESSION_SECRET="$(openssl rand -hex 32)" --app openlot
+```
+
+### Deploy
+
+```bash
+fly deploy --app openlot
+```
+
+Or from a fresh clone: `fly launch` (accept/adjust the existing `fly.toml`; do not overwrite the volume mount).
+
+### Notes
+
+- **Volume:** `[[mounts]]` source `openlot_data` → `/data`. SQLite file lives at `/data/car-parts.db`.
+- **Seed:** container entrypoint runs `ensure-seed` softly (failure does not block boot), then `node server.js` (standalone).
+- **Free allowance:** Fly free/trial allowances change; expect limited shared-CPU VMs, sleep on idle (`auto_stop_machines`), and volume size quotas. A 1 GB volume and one `iad` machine is the intended small footprint. Check [Fly pricing](https://fly.io/docs/about/pricing/) for current free allowances.
+- **Secrets only via CLI/dashboard:** `SESSION_SECRET` — never put a real secret in `fly.toml` or the repo.
+- Prefer **Vercel + Turso** if you want serverless with no disk; use Fly when you want file SQLite on a volume.

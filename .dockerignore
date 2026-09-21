@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.gitignore
+data/*.db
+data/*.db-*
+*.md
+!README.md
+demo-*.png
+.env*
+.vercel
+coverage
+*.tsbuildinfo
+next-env.d.ts
