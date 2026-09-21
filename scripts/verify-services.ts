@@ -1,10 +1,13 @@
 /**
- * Prove home-services search (H1–H4, H6) against seeded DB.
+ * Prove home-services H1–H7 against seeded DB.
  * Run after: npm run demo:seed
  * Does not modify car-parts verify.
  */
 import { initSchema, getDb } from "../lib/db";
-import { searchPros } from "../lib/services/search";
+import { searchPros, getPro } from "../lib/services/search";
+import { setProActive } from "../lib/services/pros";
+import { createLead, getServiceThread } from "../lib/services/leads";
+import { authenticateUser } from "../lib/users";
 
 function assert(cond: boolean, msg: string) {
   if (!cond) throw new Error(`FAIL: ${msg}`);
@@ -35,6 +38,20 @@ async function main() {
     "H1: license_status is unverified"
   );
   assert(Number(atlanta.active) === 1, "H1: Atlanta Plumbing Co is active");
+  assert(
+    atlanta.owner_user_id != null,
+    "H1: Atlanta Plumbing Co attached to demo pro owner"
+  );
+
+  const demoPro = await authenticateUser(
+    "pro@atlanta-plumbing.example",
+    "demo1234"
+  );
+  assert(!!demoPro, "demo pro login pro@atlanta-plumbing.example / demo1234");
+  assert(
+    Number(atlanta.owner_user_id) === demoPro!.id,
+    "H1: owner matches demo pro user"
+  );
 
   // --- H2: search plumbing + Atlanta ---
   const h2 = await searchPros({ trade: "plumbing", location: "Atlanta" });
@@ -100,12 +117,68 @@ async function main() {
     "experienced-only: Atlanta Plumbing Co (12 yrs) included"
   );
 
+  // --- H5: homeowner lead / thread ---
+  const buyer = await authenticateUser("buyer@example.com", "demo1234");
+  assert(!!buyer, "demo buyer login for H5");
+  const proId = Number(atlanta.id);
+  const { leadId, threadId } = await createLead({
+    proId,
+    homeownerId: buyer!.id,
+    jobDescription: "Kitchen faucet leak — need repair this week.",
+    preferredTiming: "Weekday mornings",
+    openThread: true,
+  });
+  assert(leadId > 0, `H5: lead saved (id=${leadId})`);
+  assert(threadId != null && threadId > 0, `H5: thread opened (id=${threadId})`);
+  const leadRow = await db.execute({
+    sql: `SELECT * FROM service_leads WHERE id = ?`,
+    args: [leadId],
+  });
+  assert(leadRow.rows.length === 1, "H5: lead row persists");
+  assert(
+    String(leadRow.rows[0].job_description).includes("faucet"),
+    "H5: job description stored"
+  );
+  const thread = await getServiceThread(threadId!);
+  assert(!!thread, "H5: service thread loadable");
+  assert(
+    thread!.messages.length >= 1,
+    "H5: thread has opening lead message"
+  );
+  assert(
+    thread!.messages[0].body.toLowerCase().includes("lead request"),
+    "H5: opener is lead request body"
+  );
+
   // --- H6: nonsense trade+location ---
   const empty = await searchPros({
     trade: "zzzz-no-such-trade-xyzzy",
     location: "Nowhereville",
   });
   assert(empty.length === 0, "H6: nonsense trade+location returns empty");
+
+  // --- H7: deactivate → gone from search ---
+  await setProActive(proId, false);
+  const afterDeact = await searchPros({
+    trade: "plumbing",
+    location: "Atlanta",
+  });
+  assert(
+    !afterDeact.some((p) => p.business_name === "Atlanta Plumbing Co"),
+    "H7: deactivated Atlanta Plumbing Co gone from search"
+  );
+  const loaded = await getPro(proId);
+  assert(loaded != null && loaded.active === false, "H7: pro marked inactive");
+  // restore for other demos / smoke
+  await setProActive(proId, true);
+  const restored = await searchPros({
+    trade: "plumbing",
+    location: "Atlanta",
+  });
+  assert(
+    restored.some((p) => p.business_name === "Atlanta Plumbing Co"),
+    "H7 cleanup: reactivated Atlanta Plumbing Co back in search"
+  );
 
   // Count active pros
   const count = await db.execute(
@@ -114,7 +187,7 @@ async function main() {
   const n = Number(count.rows[0].n);
   assert(n >= 8 && n <= 12, `seed active pros in 8–12 range (got ${n})`);
 
-  console.log("\nAll demo:verify-services checks passed (H1 H2 H3 H4 H6).");
+  console.log("\nAll demo:verify-services checks passed (H1–H7).");
 }
 
 main().catch((err) => {

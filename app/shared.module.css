@@ -163,6 +163,25 @@
   border-radius: 8px;
 }
 
+.messageBox label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.messageBox input {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 400;
+  font-family: inherit;
+}
+
 .messageBox textarea {
   width: 100%;
   margin: 0.5rem 0;
@@ -241,7 +260,26 @@
     background: #1a1a1a;
     border-color: #444;
   }
-  .messageBox textarea {
+  .messageBox label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.messageBox input {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 400;
+  font-family: inherit;
+}
+
+.messageBox textarea {
     background: #1a1a1a;
     border-color: #444;
     color: #eee;

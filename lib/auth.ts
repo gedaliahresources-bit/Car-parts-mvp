@@ -96,3 +96,20 @@ export async function requireOwnSeller(
   }
   return session;
 }
+
+/**
+ * Logged-in user may only manage their own pro profiles.
+ * Redirects to login if anonymous; redirects to own dashboard if wrong id.
+ */
+export async function requireOwnProOwner(
+  userId: number
+): Promise<SessionUser> {
+  const session = await requireSession(`/services/pro/${userId}`);
+  if (session.id !== userId) {
+    const { redirect } = await import("next/navigation");
+    redirect(`/services/pro/${session.id}`);
+    throw new Error("unreachable");
+  }
+  return session;
+}
+

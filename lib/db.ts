@@ -86,6 +86,7 @@ export async function initSchema(db: Client = getDb()): Promise<void> {
     /* Home services — separate from car-parts listings */
     CREATE TABLE IF NOT EXISTS service_pros (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      owner_user_id INTEGER REFERENCES users(id),
       business_name TEXT NOT NULL,
       trades TEXT NOT NULL,
       service_area TEXT NOT NULL,
@@ -102,9 +103,39 @@ export async function initSchema(db: Client = getDb()): Promise<void> {
       license_checked_on TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS service_leads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pro_id INTEGER NOT NULL REFERENCES service_pros(id),
+      homeowner_id INTEGER NOT NULL REFERENCES users(id),
+      job_description TEXT NOT NULL,
+      preferred_timing TEXT,
+      thread_id INTEGER,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS service_threads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pro_id INTEGER NOT NULL REFERENCES service_pros(id),
+      homeowner_id INTEGER NOT NULL REFERENCES users(id),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (pro_id, homeowner_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS service_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      thread_id INTEGER NOT NULL REFERENCES service_threads(id) ON DELETE CASCADE,
+      sender_id INTEGER NOT NULL REFERENCES users(id),
+      body TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_service_pros_active ON service_pros(active);
     CREATE INDEX IF NOT EXISTS idx_service_pros_trades ON service_pros(trades);
     CREATE INDEX IF NOT EXISTS idx_service_pros_area ON service_pros(service_area);
     CREATE INDEX IF NOT EXISTS idx_service_pros_license ON service_pros(license_status);
+    CREATE INDEX IF NOT EXISTS idx_service_pros_owner ON service_pros(owner_user_id);
+    CREATE INDEX IF NOT EXISTS idx_service_leads_pro ON service_leads(pro_id);
+    CREATE INDEX IF NOT EXISTS idx_service_leads_homeowner ON service_leads(homeowner_id);
+    CREATE INDEX IF NOT EXISTS idx_service_messages_thread ON service_messages(thread_id);
   `);
 }

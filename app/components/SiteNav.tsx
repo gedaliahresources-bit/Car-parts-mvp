@@ -15,6 +15,9 @@ export async function SiteNav() {
         <Link href="/seller">Seller inventory</Link>
       )}
       <Link href="/services">Home services</Link>
+      {session ? (
+        <Link href="/services/pro">My pro profiles</Link>
+      ) : null}
       <span className={styles.spacer} />
       {session ? (
         <>

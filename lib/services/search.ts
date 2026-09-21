@@ -58,6 +58,7 @@ export async function searchPros(
   const sql = `
     SELECT
       p.id,
+      p.owner_user_id,
       p.business_name,
       p.trades,
       p.service_area,

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { searchPros } from "@/lib/services/search";
 import { TRADE_OPTIONS, type ServicePro } from "@/lib/services/pros";
 import { initSchema } from "@/lib/db";
@@ -117,6 +118,9 @@ export default async function ServicesSearchPage({ searchParams }: Props) {
             Find local pros by trade and area. License claims are labeled
             honestly: verified (with source), unverified, or not applicable.
           </p>
+          <p className={styles.sub} style={{ marginTop: "0.5rem" }}>
+            <Link href="/services/pro">Manage my pro profiles</Link>
+          </p>
         </header>
 
         <form className={styles.form} method="get" action="/services">
@@ -198,7 +202,11 @@ export default async function ServicesSearchPage({ searchParams }: Props) {
               {results.map((pro) => (
                 <li key={pro.id} className={styles.card}>
                   <div className={styles.cardTitle}>
-                    <strong>{pro.business_name}</strong>
+                    <strong>
+                      <Link href={`/services/pros/${pro.id}`}>
+                        {pro.business_name}
+                      </Link>
+                    </strong>
                     <span className={styles.years}>
                       {pro.years_experience} yr
                       {pro.years_experience === 1 ? "" : "s"}
@@ -225,6 +233,11 @@ export default async function ServicesSearchPage({ searchParams }: Props) {
                   <p className={styles.selfDecl}>
                     Experience and area are self-declared unless separately
                     verified.
+                  </p>
+                  <p style={{ marginTop: "0.65rem", fontSize: "0.9rem" }}>
+                    <Link href={`/services/pros/${pro.id}`}>
+                      View profile / send lead →
+                    </Link>
                   </p>
                 </li>
               ))}

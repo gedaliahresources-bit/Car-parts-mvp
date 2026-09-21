@@ -871,6 +871,8 @@ type SeedPro = {
   contact_email?: string;
   contact_phone?: string;
   active?: boolean;
+  /** If set, attach this pro to the demo pro user with that email */
+  owner_email?: string;
   license_status: LicenseStatus;
   license_number?: string;
   license_source_name?: string;
@@ -889,6 +891,7 @@ const servicePros: SeedPro[] = [
     notes: "Family-owned; serves metro Atlanta.",
     contact_email: "jobs@atlanta-plumbing.example",
     contact_phone: "404-555-0201",
+    owner_email: "pro@atlanta-plumbing.example",
     license_status: "unverified",
   },
   // Verified plumbing with named demo source
@@ -1035,12 +1038,24 @@ async function main() {
     sellerIds.push(Number(r.rows[0].id));
   }
 
-  // Demo buyer (can message sellers)
+  // Demo buyer (can message sellers / send service leads)
   await db.execute({
     sql: `INSERT INTO users (role, display_name, email, password_hash, contact_email, contact_phone)
           VALUES ('buyer', 'Demo Buyer', 'buyer@example.com', ?, 'buyer@example.com', NULL)`,
     args: [password_hash],
   });
+
+  // Demo home-services pro (owns Atlanta Plumbing Co)
+  const demoProInsert = await db.execute({
+    sql: `INSERT INTO users (role, display_name, email, password_hash, contact_email, contact_phone)
+          VALUES ('seller', 'Atlanta Plumbing Co', 'pro@atlanta-plumbing.example', ?, 'jobs@atlanta-plumbing.example', '404-555-0201')
+          RETURNING id`,
+    args: [password_hash],
+  });
+  const demoProUserId = Number(demoProInsert.rows[0].id);
+  const ownerByEmail: Record<string, number> = {
+    "pro@atlanta-plumbing.example": demoProUserId,
+  };
 
   let listingCount = 0;
   let activeCount = 0;
@@ -1088,14 +1103,19 @@ async function main() {
         );
       }
     }
+    const ownerId =
+      P.owner_email && ownerByEmail[P.owner_email]
+        ? ownerByEmail[P.owner_email]
+        : null;
     await db.execute({
       sql: `INSERT INTO service_pros (
-              business_name, trades, service_area, years_experience,
+              owner_user_id, business_name, trades, service_area, years_experience,
               specialties, notes, contact_email, contact_phone, active,
               license_status, license_number, license_source_name,
               license_source_url, license_checked_on
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
+        ownerId,
         P.business_name,
         P.trades,
         P.service_area,
@@ -1139,7 +1159,10 @@ async function main() {
   console.log("  yard@peachtree-salvage.example (seller)");
   console.log("  sales@metrousedparts.example (seller)");
   console.log("  parts@southern-yard.example (seller)");
-  console.log("  buyer@example.com (buyer)");
+  console.log("  buyer@example.com (buyer / homeowner leads)");
+  console.log(
+    "  pro@atlanta-plumbing.example (pro — owns Atlanta Plumbing Co)"
+  );
 }
 
 main().catch((err) => {
