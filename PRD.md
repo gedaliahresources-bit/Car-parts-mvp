@@ -1,5 +1,6 @@
 # Car-parts marketplace MVP — PRD
 
+**Brand:** Openlot (Openlot LLC)
 **Product:** online junkyard / car-parts match
 **Owner:** Immanuel (lotforge)
 **Status:** draft for first build

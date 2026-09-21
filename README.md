@@ -1,4 +1,4 @@
-# Car Parts Match — MVP (Slices 0–4)
+# Openlot — MVP (Slices 0–4)
 
 Local marketplace loop: sellers list parts → buyers search → match via in-app thread and/or contact handoff. No payments.
 

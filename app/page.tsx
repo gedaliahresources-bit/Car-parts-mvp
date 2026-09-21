@@ -58,7 +58,8 @@ export default async function SearchPage({ searchParams }: Props) {
       <SiteNav />
       <main className={styles.main}>
         <header className={styles.header}>
-          <h1>Car Parts Match</h1>
+          <h1>Openlot</h1>
+          <p className={styles.sub}>Find car parts from local yards.</p>
           <p className={styles.sub}>
             Search seller inventory by part name, part number, and/or year /
             make / model.

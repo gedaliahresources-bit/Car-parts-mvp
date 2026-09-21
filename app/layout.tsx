@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Car Parts Match",
-  description: "Buyer search for local car-parts marketplace MVP",
+  title: "Openlot",
+  description: "Openlot — find car parts from local yards.",
 };
 
 export default function RootLayout({
