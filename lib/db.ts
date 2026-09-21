@@ -2,19 +2,25 @@ import { createClient, type Client } from "@libsql/client";
 import path from "path";
 import fs from "fs";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const DB_PATH = path.join(DATA_DIR, "car-parts.db");
+function resolveDbPath(): string {
+  if (process.env.DATABASE_PATH) {
+    return process.env.DATABASE_PATH;
+  }
+  const dataDir = process.env.DATA_DIR || path.join(process.cwd(), "data");
+  return path.join(dataDir, "car-parts.db");
+}
 
 let client: Client | null = null;
 
 export function getDbPath(): string {
-  return DB_PATH;
+  return resolveDbPath();
 }
 
 export function getDb(): Client {
   if (!client) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-    client = createClient({ url: `file:${DB_PATH}` });
+    const dbPath = resolveDbPath();
+    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+    client = createClient({ url: `file:${dbPath}` });
   }
   return client;
 }

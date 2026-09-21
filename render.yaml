@@ -1,0 +1,21 @@
+# Openlot — Render Blueprint (persistent SQLite on disk)
+# Persistent disks require a paid plan (Starter+); Free cannot mount disks.
+services:
+  - type: web
+    name: openlot
+    runtime: node
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: openlot-data
+      mountPath: /var/data
+      sizeGB: 1

@@ -1016,14 +1016,9 @@ const servicePros: SeedPro[] = [
   },
 ];
 
-async function main() {
+/** Populate an empty DB with demo sellers, listings, and service pros. */
+export async function seedDemoData(): Promise<void> {
   const dbPath = getDbPath();
-  resetDbClient();
-  if (fs.existsSync(dbPath)) {
-    fs.unlinkSync(dbPath);
-    console.log(`Deleted existing DB: ${dbPath}`);
-  }
-
   const db = getDb();
   await initSchema(db);
 
@@ -1165,7 +1160,23 @@ async function main() {
   );
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+async function main() {
+  const dbPath = getDbPath();
+  resetDbClient();
+  if (fs.existsSync(dbPath)) {
+    fs.unlinkSync(dbPath);
+    console.log(`Deleted existing DB: ${dbPath}`);
+  }
+  await seedDemoData();
+}
+
+const isDirectRun =
+  typeof process.argv[1] === "string" &&
+  /(^|[/\\])seed\.(ts|js)$/.test(process.argv[1]);
+
+if (isDirectRun) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

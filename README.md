@@ -110,3 +110,19 @@ npm run demo:verify-services
 - area: **Atlanta, GA**
 - license: **unverified**
 - owner: `pro@atlanta-plumbing.example` / `demo1234`
+
+## Deploy on Render
+
+GitHub repo: [`gedaliahresources-bit/Car-parts-mvp`](https://github.com/gedaliahresources-bit/Car-parts-mvp)
+
+1. In [Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint** → connect the GitHub repo above (uses `render.yaml`).
+2. Or create a **Web Service** manually with the same settings as `render.yaml`:
+   - **Runtime:** Node
+   - **Build:** `npm install && npm run build`
+   - **Start:** `npm run start:prod`
+   - **Env:** `NODE_VERSION=20`, `SESSION_SECRET` (generate), `DATA_DIR=/var/data`
+   - **Disk:** name `openlot-data`, mount `/var/data`, size 1 GB
+   - **Health check path:** `/`
+3. **Plan note:** Free web services may sleep on idle. **Persistent disks require a paid plan** (Starter or higher) — this Blueprint uses `starter` for that reason. Without a disk, SQLite under `/var/data` will not survive deploys/restarts.
+
+Local default is unchanged: SQLite lives under `./data` unless `DATA_DIR` or `DATABASE_PATH` is set.
